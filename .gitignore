@@ -9,3 +9,12 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+build/
+data/
+# # ignore all files.
+Examples/*
+# unignore all files have extension.
+!Examples/*.*
+# # unignore all dirs.
+# !*/
