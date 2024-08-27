@@ -89,7 +89,7 @@ int main(int, char**){
         // if(cv::waitKey() == 27) // ESC
             // break;
 
-        int key = cv::waitKey(1);
+        int key = cv::waitKey(33);
         if (key == 32) key = cv::waitKey(); // Space
         if (key == 27) break;               // ESC
         // frame_curr.copyTo(frame_prev);
