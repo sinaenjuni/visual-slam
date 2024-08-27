@@ -1,0 +1,144 @@
+# OpenCV Mat type (https://makepluscode.tistory.com/entry/OPENCV-MAT-%ED%81%B4%EB%9E%98%EC%8A%A4-type-%EC%9D%B4%ED%95%B4%ED%95%98%EA%B8%B0)
++--------+----+----+----+----+------+------+------+------+
+|        | C1 | C2 | C3 | C4 | C(5) | C(6) | C(7) | C(8) |
++--------+----+----+----+----+------+------+------+------+
+| CV_8U  |  0 |  8 | 16 | 24 |   32 |   40 |   48 |   56 |
+| CV_8S  |  1 |  9 | 17 | 25 |   33 |   41 |   49 |   57 |
+| CV_16U |  2 | 10 | 18 | 26 |   34 |   42 |   50 |   58 |
+| CV_16S |  3 | 11 | 19 | 27 |   35 |   43 |   51 |   59 |
+| CV_32S |  4 | 12 | 20 | 28 |   36 |   44 |   52 |   60 |
+| CV_32F |  5 | 13 | 21 | 29 |   37 |   45 |   53 |   61 |
+| CV_64F |  6 | 14 | 22 | 30 |   38 |   46 |   54 |   62 |
++--------+----+----+----+----+------+------+------+------+
+
+# Homography는 object point에서 image point로 변환해야 정확하게 homography를 구할 수 있다.(https://learnopencv.com/homography-examples-using-opencv-python-c/)
+cv::Mat H = cv::findHomography(world_point, image_point);
+
+cv::Mat t;
+cv::perspectiveTransform(world_point, t, H);
+
+# cv::SVDecomp의 vt는 row를 기준으로 정렬된다. null space에 가까운 정보는 vt.row(-1)에 위치
+# cv::SVD::MODIFY_A는 결과를 수정할 수 있도록 결과를 생성 연산 속도 향상에도 도움이 된다고 한다. (https://docs.opencv.org/3.4/df/df7/classcv_1_1SVD.html#a4700f5207e66cdd9924bf64e34911832afb6aab7965c8f601696b10fa109e2789)
+# retrieval 할 떄, python 처럼 -1을 사용하면 안된다.
+cv::Mat w, u, vt;
+cv::SVDecomp(A, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+vt = vt.row(8).reshape(0, 3);
+vt = vt / vt.at<float_t>(2,2);
+PRINT(vt);
+
+# forEach()
+corners.forEach<cv::Vec2f>([imgs](cv::Vec2f &pixel, const int* po) -> void{
+    PRINT(pixel[0]);
+    PRINT(pixel[1]);
+    cv::circle(imgs[0], cv::Point(pixel[0], pixel[1]), 5, cv::Scalar(255,0,0), -1, cv::LINE_AA);
+});
+for(int i=0; i<corners.rows; i++){
+    PRINT(corners.row(i));
+}
+
+
+# Uesage of ORB Feature extractor
+orb->detectAndCompute(gray, cv::noArray(), curr_keypoints, curr_descriptors);
+// orb->detect(gray, curr_keypoints, cv::noArray());
+// orb->compute(gray, curr_keypoints, curr_descriptors);
+
+# Sort descriptor
+// std::sort(matches.begin(), matches.end(), [](const cv::DMatch &a, const cv::DMatch &b) {
+    // return a.distance < b.distance;
+// });
+// PRINT(matches.size());
+// if((matches.size() > 500)){
+//     prev_descriptors = curr_descriptors;
+//     prev_keypoints = curr_keypoints;
+//     continue;
+// }
+
+
+# change pangoiln view point
+// 현재 모델 뷰 행렬 가져오기
+Eigen::Matrix4d current_mv = s_cam.GetModelViewMatrix();
+
+// 현재 모델 뷰 행렬에서 회전 행렬 추출
+Eigen::Matrix3d current_rotation = current_mv.block<3, 3>(0, 0);
+
+// 기존 회전을 유지하고, 새로운 평행 이동 적용
+Sophus::SE3d new_pose(current_rotation, Ts.back().translation());
+
+// SE3d를 OpenGlMatrix로 변환
+Eigen::Matrix4d t = new_pose.matrix();
+pangolin::OpenGlMatrix mv(t);
+
+// 카메라 상태를 새로운 위치로 설정 (회전은 그대로, 평행 이동만 변경)
+s_cam.SetModelViewMatrix(mv);
+
+
+
+
+
+
+
+
+
+
+    // PRINT(cv::countNonZero(inlier));
+    // F = cv::findEssentialMat(curr.matched_points, prev.matched_points, K, cv::RANSAC);
+    // for(int i=0; i<inlier.rows; ++i){
+    //     if(inlier.at<bool>(i)){
+    //         cv::Point2f p0 = curr.matched_points[i];
+    //         cv::Point2f p1 = prev.matched_points[i];
+    //         cv::line(frame_curr, p0, p1, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    //     }
+    // }
+
+
+
+    // cv::Mat R1, R2;
+    // cv::SVD svd(F, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+
+    // cv::Mat W = (cv::Mat_<double>(3, 3) << 
+    //             0, -1, 0,
+    //             1, 0, 0,
+    //             0, 0, 1);
+
+    // cv::Mat Wt = W.t();
+
+    // 두 가지 가능한 Rotation 행렬
+    // R = svd.u * Wt * svd.vt;
+
+    // R = svd.u * W * svd.vt;
+    // if(cv::sum(R.diag())[0] < 0){
+    // }
+
+    // Translation 행렬 (벡터 t)
+    // t = svd.u.col(2);
+
+    // cv::Mat W = (cv::Mat_<double>(3, 3) << 0, -1, 0,
+    //                                         1, 0,  0,
+    //                                         0, 0,  1);
+    // cv::Mat U, D, Vt;
+    // cv::SVD::compute(F, D, U, Vt);
+    
+    // cv::Mat W_diag = cv::Mat::zeros(3, 3, CV_64F);
+    // W_diag.at<double>(0, 0) = 1.0;
+    // W_diag.at<double>(1, 1) = 1.0;
+
+    // cv::Mat E_prime = U * W_diag * Vt;
+    // cv::Mat U_w, Vt_w;
+    // cv::SVD::compute(E_prime, U, U_w, Vt_w);
+
+
+    // if(cv::determinant(U_w)<0){
+    //     U_w *= -1.0;
+    // }
+
+    // if(cv::determinant(Vt_w)<0){
+    //     Vt_w *= -1.0;
+    // }
+    // R = U_w * W * Vt_w;
+
+    // if(cv::sum(R.diag())[0] < 0){
+    //     R = U * W.t() * Vt.t();
+    // }
+    // PRINT(cv::determinant(R));
+    // t = U_w.col(2);
+    // t /= cv::norm(t);
